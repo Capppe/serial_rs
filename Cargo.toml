@@ -1,0 +1,12 @@
+[package]
+name = "serial_rs"
+version = "0.1.0"
+authors = ["Cappe <caspernordstrom00@gmail.com"]
+edition = "2021"
+
+[dependencies]
+libc = "0.2.155"
+tokio = { version = "1.38.0", features = ["full"] }
+async-channel = "2.3.1"
+serde_json = "1.0.124"
+serde = { version = "1.0.203", features = ["derive"] }
