@@ -1,6 +1,5 @@
-use std::process::Command;
-
 use serde::{Deserialize, Serialize};
+use tokio::process::Command;
 
 use crate::utils::get_port_type;
 
@@ -59,12 +58,13 @@ impl Properties {
     }
 }
 
-pub fn get_all_available_ports() -> Vec<Port> {
+pub async fn get_all_available_ports() -> Vec<Port> {
     let mut ports = Vec::new();
     let ports_output = Command::new("sh")
         .arg("-c")
         .arg("ls /dev/tty*")
         .output()
+        .await
         .expect("Failed to list ports");
 
     if ports_output.status.success() {
@@ -83,8 +83,8 @@ pub fn get_all_available_ports() -> Vec<Port> {
     return ports;
 }
 
-pub fn get_port_by_type(t: PortType) -> Vec<Port> {
-    let all_ports = get_all_available_ports();
+pub async fn get_port_by_type(t: PortType) -> Vec<Port> {
+    let all_ports = get_all_available_ports().await;
     let mut filtered_ports: Vec<Port> = Vec::new();
 
     for port in all_ports {
@@ -95,8 +95,8 @@ pub fn get_port_by_type(t: PortType) -> Vec<Port> {
     return filtered_ports;
 }
 
-pub fn get_port_by_name(name: String) -> Vec<Port> {
-    let all_ports = get_all_available_ports();
+pub async fn get_port_by_name(name: String) -> Vec<Port> {
+    let all_ports = get_all_available_ports().await;
     let mut filtered_ports: Vec<Port> = Vec::new();
 
     for port in all_ports {

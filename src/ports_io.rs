@@ -4,8 +4,8 @@ use std::{
     os::fd::AsRawFd,
 };
 
-use async_channel::Sender;
 use libc::{cfsetspeed, tcgetattr, tcsetattr, termios, B115200, B9600, TCSANOW};
+use tokio::sync::mpsc::Sender;
 
 use crate::ports::Port;
 
@@ -36,13 +36,13 @@ pub async fn read_from_port(port: Port, baud_rate: u32, sender: Sender<Vec<u8>>)
     let mut serial_port = OpenOptions::new()
         .read(true)
         .write(false)
-        .open(port.name.clone().unwrap_or("".to_string()))?;
+        .open(port.label.clone().unwrap_or("".to_string()))?;
 
     set_serial_config(serial_port.as_raw_fd(), baud_rate)?;
 
     println!(
         "Connected to {} with baud rate {}",
-        port.name.unwrap_or("".to_string()),
+        port.label.unwrap_or("".to_string()),
         baud_rate
     );
 
@@ -51,7 +51,7 @@ pub async fn read_from_port(port: Port, baud_rate: u32, sender: Sender<Vec<u8>>)
         match serial_port.read(&mut buffer) {
             Ok(n) => {
                 if n > 0 {
-                    sender.send(buffer[..n].to_vec()).await.unwrap();
+                    let _ = sender.send(buffer[..n].to_vec()).await;
                 }
             }
             Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
@@ -65,7 +65,7 @@ pub fn write_to_port(port: Port, data: &[u8]) -> io::Result<()> {
     let mut serial_port = OpenOptions::new()
         .read(false)
         .write(true)
-        .open(port.name.unwrap_or("".to_string()))?;
+        .open(port.label.unwrap_or("".to_string()))?;
 
     serial_port.write_all(data)?;
 
