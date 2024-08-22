@@ -33,29 +33,37 @@ fn set_serial_config(fd: i32, baud_rate: u32) -> io::Result<()> {
 }
 
 pub async fn read_from_port(port: Port, baud_rate: u32, sender: Sender<Vec<u8>>) -> io::Result<()> {
-    let mut serial_port = OpenOptions::new()
+    println!("Here");
+    let serial_port = OpenOptions::new()
         .read(true)
         .write(false)
-        .open(port.label.clone().unwrap_or("".to_string()))?;
+        .open(port.label.clone().unwrap_or("".to_string()));
 
-    set_serial_config(serial_port.as_raw_fd(), baud_rate)?;
+    match serial_port {
+        Ok(mut s_port) => {
+            set_serial_config(s_port.as_raw_fd(), baud_rate)?;
 
-    println!(
-        "Connected to {} with baud rate {}",
-        port.label.unwrap_or("".to_string()),
-        baud_rate
-    );
+            println!(
+                "Connected to {} with baud rate {}",
+                port.label.unwrap_or("".to_string()),
+                baud_rate
+            );
 
-    let mut buffer = [0; 128];
-    loop {
-        match serial_port.read(&mut buffer) {
-            Ok(n) => {
-                if n > 0 {
-                    let _ = sender.send(buffer[..n].to_vec()).await;
+            let mut buffer = [0; 128];
+            loop {
+                match s_port.read(&mut buffer) {
+                    Ok(n) => {
+                        if n > 0 {
+                            let _ = sender.send(buffer[..n].to_vec()).await;
+                        }
+                    }
+                    Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
+                    Err(e) => return Err(e),
                 }
             }
-            Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
-            Err(e) => return Err(e),
+        }
+        Err(e) => {
+            return Err(e);
         }
     }
 }
